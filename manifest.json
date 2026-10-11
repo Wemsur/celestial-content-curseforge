@@ -1,0 +1,32 @@
+{
+	"id": "curseforge",
+	"name": "CurseForge",
+	"version": "0.1.0",
+	"description": "CurseForge 的模组、光影、资源包与整合包。需要 API Key 才能使用，搜索与安装走 CurseForge 官方 API，文件从 CurseForge CDN 下载。",
+	"author": "Celestial",
+	"homepage": "https://github.com/Wemsur/Celestial-Content-Plugins",
+	"icon": "icon.svg",
+	"color": "#f16436",
+	"detail_format": "markdown",
+	"api_version": 1,
+	"entry": "dist/index.js",
+	"content_types": ["mod", "modpack", "resourcepack", "shader", "datapack"],
+	"capabilities": {
+		"search": true,
+		"browse": true,
+		"detail": true,
+		"versions": true,
+		"resolve_download": true,
+		"update_check": true
+	},
+	"hosts": ["api.curseforge.com", "edge.forgecdn.net", "mediafilez.forgecdn.net", "www.curseforge.com", "mod.mcimirror.top"],
+	"settings": [
+		{
+			"key": "apiKey",
+			"label": "API Key（可覆盖内置值）",
+			"description": "留空使用插件内置的 Key。CurseForge 应用内注册可得，格式 $2a$10$ 开头。",
+			"type": "text",
+			"default": ""
+		}
+	]
+}
