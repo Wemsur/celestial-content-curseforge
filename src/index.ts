@@ -394,16 +394,44 @@ export async function activate(api: ContentSourceApi) {
 		}
 	}
 
+	/**
+	 * A project's numeric id, resolving a slug when that is what was given.
+	 *
+	 * CurseForge's file and detail endpoints only take the numeric mod id, but a
+	 * project is also addressable by its slug — which is what a site that merely
+	 * *links* to a CurseForge page knows it by (mcmod names a pack's CurseForge
+	 * slug, not its id). So a non-numeric id is looked up once and the numeric id
+	 * cached for the session.
+	 */
+	const modIdCache = new Map<string, number>()
+
+	async function resolveModId(id: string): Promise<string> {
+		if (/^\d+$/.test(id)) return id
+		const cached = modIdCache.get(id)
+		if (cached !== undefined) return String(cached)
+		const payload = await get<{ data: CfMod[] }>(
+			`/v1/mods/search?gameId=${GAME_ID}&slug=${encodeURIComponent(id)}`,
+		)
+		const found = payload.data?.[0]?.id
+		if (found === undefined) {
+			throw new Error(`CurseForge 上没有找到「${id}」。`)
+		}
+		modIdCache.set(id, found)
+		return String(found)
+	}
+
 	/** One project's files, newest first. Restricted files carry a null URL. */
 	async function filesOf(id: string): Promise<CfFile[]> {
-		const payload = await get<{ data: CfFile[] }>(`/v1/mods/${encodeURIComponent(id)}/files`)
+		const resolved = await resolveModId(id)
+		const payload = await get<{ data: CfFile[] }>(`/v1/mods/${encodeURIComponent(resolved)}/files`)
 		return (payload.data ?? []).sort(
 			(a, b) => Date.parse(b.fileDate) - Date.parse(a.fileDate),
 		)
 	}
 
 	async function mod(id: string): Promise<CfMod> {
-		const payload = await get<{ data: CfMod }>(`/v1/mods/${encodeURIComponent(id)}`)
+		const resolved = await resolveModId(id)
+		const payload = await get<{ data: CfMod }>(`/v1/mods/${encodeURIComponent(resolved)}`)
 		return payload.data
 	}
 
@@ -438,10 +466,12 @@ export async function activate(api: ContentSourceApi) {
 		},
 
 		async detail(id: string, contentType: string): Promise<ContentProject> {
+			// The description endpoint, like the file one, only takes the numeric id.
+			const resolved = await resolveModId(id)
 			const [data, files, description] = await Promise.all([
 				mod(id),
 				filesOf(id).catch(() => [] as CfFile[]),
-				get<{ data: string }>(`/v1/mods/${encodeURIComponent(id)}/description`),
+				get<{ data: string }>(`/v1/mods/${encodeURIComponent(resolved)}/description`),
 			])
 
 			return {
